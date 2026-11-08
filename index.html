@@ -93,8 +93,8 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
     </section>
     <section class="panel stack">
       <h2>Enter an ID by hand</h2>
-      <div class="seg"><button type="button" class="on" id="mStd">Registered ID</button><button type="button" id="mOut">Outsider (AUI)</button></div>
-      <div class="manual"><span class="pre" id="pre" hidden>AUI</span><input type="text" id="manual" inputmode="text" placeholder="ID" autocomplete="off"><button class="btn" id="manualGo">Check</button></div>
+      <div class="seg"><button type="button" class="on" id="mStd">Registered ID</button><button type="button" id="mOut">Outsider</button></div>
+      <div class="manual"><input type="text" id="manual" inputmode="text" placeholder="ID" autocomplete="off"><button class="btn" id="manualGo">Check</button></div>
       <div class="hint" id="mHint" style="margin:0" hidden>Outsider number from 1 to 250000</div>
     </section>
     <section class="panel">
@@ -189,17 +189,18 @@ function handle(id){
   const o=outsiderId(id);
   if(o===false){show("no",id,"outsider number must be 1 to 250000");return}
   if(o)id=o;
+  const disp=o?String(+o.slice(3)):id;
   const row=access.find(r=>r.id===id&&r.workshop===workshop);
   const ok=row?row.access:(!!o&&!NO_OUTSIDERS.test(workshop));
   if(ok){
-    if(attendance.some(a=>a.id===id&&a.workshop===workshop))show("wn",id);
-    else{attendance.push({id,workshop,time:new Date().toLocaleString()});store("attendance",attendance);updateCount();show("ok",id,o?"outsider":"")}
-  }else show("no",id,o&&!row?"not open to outsiders":"");
+    if(attendance.some(a=>a.id===id&&a.workshop===workshop))show("wn",disp);
+    else{attendance.push({id,workshop,time:new Date().toLocaleString()});store("attendance",attendance);updateCount();show("ok",disp,o?"outsider":"")}
+  }else show("no",disp,o&&!row?"not open to outsiders":"");
 }
 let outsider=false;
 function setMode(o){outsider=o;$("mOut").classList.toggle("on",o);$("mStd").classList.toggle("on",!o);
-  $("pre").hidden=!o;$("mHint").hidden=!o;$("mHint").style.color="";$("mHint").textContent="Outsider number from 1 to 250000";
-  $("manual").placeholder=o?"1 – 250000":"ID";$("manual").inputMode=o?"numeric":"text";$("manual").value="";$("manual").focus()}
+  $("mHint").hidden=!o;$("mHint").style.color="";$("mHint").textContent="Outsider number from 1 to 250000";
+  $("manual").placeholder=o?"Outsider number":"ID";$("manual").inputMode=o?"numeric":"text";$("manual").value="";$("manual").focus()}
 $("mStd").onclick=()=>setMode(false);$("mOut").onclick=()=>setMode(true);
 $("manualGo").onclick=()=>{let v=$("manual").value.trim();if(!v)return;
   if(outsider){
@@ -227,7 +228,7 @@ async function tick(){
 }
 
 $("export").onclick=()=>{
-  const rows=attendance.filter(a=>a.workshop===workshop).map(a=>({ID:a.id,Workshop:a.workshop,Time:a.time}));
+  const rows=attendance.filter(a=>a.workshop===workshop).map(a=>({ID:/^AUI\d+$/i.test(a.id)?a.id.slice(3):a.id,Workshop:a.workshop,Time:a.time}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Attendance");
   XLSX.writeFile(wb,"attendance_"+workshop.replace(/\W+/g,"_")+".xlsx");
 };
