@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1419">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>Workshop Check-in</title>
+<style>
+:root{--bg:#eef1f5;--panel:#fff;--fg:#10151c;--mut:#5d6877;--line:#d5dbe3;--pri:#3355ff;--ok:#12a150;--no:#d92d20;--warn:#e8a200;--r:16px}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1419;--panel:#18202a;--fg:#eef2f7;--mut:#93a0b1;--line:#2a3542}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+ padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.app{max-width:1000px;margin:0 auto;padding:16px;min-height:100%;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:1.25rem;margin:0;letter-spacing:-.01em}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-weight:600;font-size:.9rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel h2{font-size:1rem;margin:0 0 4px}
+.hint{color:var(--mut);font-size:.9rem;margin:0 0 12px}
+button,select,input{font:inherit;color:inherit}
+select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+.btn{width:100%;min-height:54px;border:0;border-radius:12px;background:var(--pri);color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.drop:focus-within{outline:3px solid var(--pri);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.drop{display:flex;align-items:center;justify-content:center;text-align:center;min-height:84px;border:2px dashed var(--line);border-radius:12px;padding:12px;cursor:pointer;font-weight:600}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.status{font-size:.9rem;margin-top:10px;font-weight:600}
+.status.good{color:var(--ok)} .status.bad{color:var(--no)}
+#setup{max-width:520px;width:100%;margin:0 auto}
+#scan{display:none;flex:1;gap:14px;grid-template-columns:1fr}
+#scan.on{display:grid}
+.cam{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:3/4;max-height:68vh;width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.frame{position:absolute;inset:0;margin:auto;width:62%;aspect-ratio:1;border:3px solid #fff;border-radius:22px;opacity:.75;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+.result{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;text-align:center;padding:20px}
+.result.show{display:flex;animation:pop .18s ease-out}
+.result .g{font-size:5.5rem;line-height:1;font-weight:800}
+.result .t{font-size:1.9rem;font-weight:800}
+.result .i{font-size:1.1rem;opacity:.95;word-break:break-all}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.result.show{animation:none}}
+.side{display:flex;flex-direction:column;gap:12px}
+.count{display:flex;align-items:baseline;gap:10px}
+.count b{font-size:2.6rem;line-height:1}
+.log{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto}
+.log li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:.95rem}
+.log li:first-child{border-top:0}
+.tag{font-weight:700}.tag.ok{color:var(--ok)}.tag.no{color:var(--no)}.tag.wn{color:var(--warn)}
+.manual{display:flex;gap:8px}
+.manual .btn{width:auto;padding:0 18px}
+.dbg{color:var(--mut);font-size:.8rem}
+@media(min-width:860px){
+ #scan.on{grid-template-columns:1.25fr 1fr;align-items:start}
+ .cam{aspect-ratio:4/3;max-height:none}
+}
+</style></head><body>
+<div class="app">
+<header><h1>Workshop check-in</h1><span class="pill" id="wsPill" hidden></span></header>
+
+<main id="setup" class="stack">
+  <section class="panel">
+    <h2>Access sheet</h2>
+    <p class="hint">Excel file with an ID column, then one column per workshop (TRUE or FALSE).</p>
+    <label class="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv"><span id="dropText">Choose Excel file</span></label>
+    <div class="status" id="loaded"></div>
+  </section>
+  <section class="panel stack">
+    <div><h2>Workshop</h2><p class="hint" style="margin:0">Only people with access to this workshop will be let in.</p></div>
+    <select id="ws" aria-label="Workshop"></select>
+    <button class="btn" id="start">Start scanning</button>
+  </section>
+</main>
+
+<main id="scan">
+  <div class="cam">
+    <video id="v" playsinline muted></video>
+    <div class="frame"></div>
+    <div class="result" id="result"><div class="g" id="rg"></div><div class="t" id="rt"></div><div class="i" id="ri"></div></div>
+  </div>
+  <div class="side">
+    <section class="panel">
+      <div class="count"><b id="count">0</b><span class="hint" style="margin:0">checked in to this workshop</span></div>
+    </section>
+    <section class="panel">
+      <h2>Enter an ID by hand</h2>
+      <div class="manual"><input type="text" id="manual" inputmode="text" placeholder="ID" autocomplete="off"><button class="btn" id="manualGo">Check</button></div>
+    </section>
+    <section class="panel">
+      <h2>Recent scans</h2>
+      <ul class="log" id="log"><li class="hint">Nothing scanned yet. Point the camera at a QR code.</li></ul>
+    </section>
+    <button class="btn" id="export">Download attendance (.xlsx)</button>
+    <button class="btn ghost" id="stop">Change workshop</button>
+    <div class="dbg" id="dbg"></div>
+  </div>
+</main>
+</div>
+<canvas id="c" hidden></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let access=[],attendance=[],recent=[],workshop="",stream=null,running=false,last="",lastT=0,hideT;
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
+access=load("access",[]);attendance=load("attendance",[]);
+
+function refreshSetup(){
+  const ws=[...new Set(access.map(r=>r.workshop))].sort();
+  const keep=load("lastWorkshop","");
+  $("ws").innerHTML=ws.map(w=>`<option${w===keep?" selected":""}>${w}</option>`).join("");
+  const el=$("loaded");
+  if(access.length){el.textContent=`${access.length} rows loaded · ${ws.length} workshop${ws.length===1?"":"s"}`;el.className="status good";$("dropText").textContent="Replace Excel file"}
+  else{el.textContent="No sheet loaded yet.";el.className="status"}
+  $("start").disabled=!ws.length;
+}
+refreshSetup();
+
+$("file").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer());
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:""});
+    const yes=v=>["true","1","yes"].includes(String(v).trim().toLowerCase());
+    const cols=rows.length?Object.keys(rows[0]).map(s=>s.trim()):[];
+    const idCol=Object.keys(rows[0]||{}).find(s=>s.trim().toLowerCase()==="id");
+    const wsCol=Object.keys(rows[0]||{}).find(s=>s.trim().toLowerCase()==="workshop");
+    access=[];
+    if(wsCol){ /* old layout: ID | Workshop | Access */
+      const acCol=Object.keys(rows[0]).find(s=>s.trim().toLowerCase()==="access");
+      rows.forEach(r=>{const id=String(r[idCol]).trim(),w=String(r[wsCol]).trim();if(id&&w)access.push({id,workshop:w,access:yes(r[acCol])})});
+    }else{ /* new layout: ID | workshop 1 | workshop 2 | ... */
+      const wsCols=Object.keys(rows[0]||{}).filter(s=>s!==idCol&&s.trim()&&s.trim().toLowerCase()!=="name");
+      rows.forEach(r=>{const id=String(r[idCol]).trim();if(!id)return;
+        wsCols.forEach(w=>access.push({id,workshop:w.trim(),access:yes(r[w])}))});
+    }
+    if(!access.length)throw 0;
+    store("access",access);refreshSetup();
+  }catch(err){const el=$("loaded");el.textContent="Could not read this file. The first column must be named ID, followed by one column per workshop.";el.className="status bad"}
+};
+
+$("start").onclick=async()=>{
+  workshop=$("ws").value;store("lastWorkshop",workshop);
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:720}}})}
+  catch(e){alert("The camera is blocked. Allow camera access for this site, then try again.");return}
+  $("v").srcObject=stream;await $("v").play();
+  $("setup").style.display="none";$("scan").classList.add("on");
+  $("wsPill").hidden=false;$("wsPill").textContent=workshop;
+  recent=[];renderLog();updateCount();running=true;requestAnimationFrame(tick);
+};
+$("stop").onclick=()=>{
+  running=false;if(stream)stream.getTracks().forEach(t=>t.stop());
+  $("scan").classList.remove("on");$("setup").style.display="";$("wsPill").hidden=true;
+};
+
+const updateCount=()=>$("count").textContent=attendance.filter(a=>a.workshop===workshop).length;
+function renderLog(){
+  $("log").innerHTML=recent.length?recent.map(r=>`<li><span>${r.id}</span><span class="tag ${r.c}">${r.label} · ${r.time}</span></li>`).join(""):'<li class="hint">Nothing scanned yet. Point the camera at a QR code.</li>';
+}
+function beep(f,d){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();
+  o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
+function show(kind,id){
+  const m={ok:["✓","Access granted","var(--ok)","ok","Granted"],no:["✕","Access denied","var(--no)","no","Denied"],wn:["!","Already checked in","var(--warn)","wn","Repeat"]}[kind];
+  const r=$("result");r.style.background=m[2];$("rg").textContent=m[0];$("rt").textContent=m[1];$("ri").textContent=id;
+  r.classList.remove("show");void r.offsetWidth;r.classList.add("show");
+  clearTimeout(hideT);hideT=setTimeout(()=>r.classList.remove("show"),2200);
+  recent.unshift({id,c:m[3],label:m[4],time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})});recent=recent.slice(0,8);renderLog();
+  if(navigator.vibrate)navigator.vibrate(kind==="no"?[200,100,200]:120);
+  kind==="ok"?beep(880,.15):kind==="no"?beep(220,.35):beep(520,.2);
+}
+function handle(id){
+  const row=access.find(r=>r.id===id&&r.workshop===workshop);
+  if(row&&row.access){
+    if(attendance.some(a=>a.id===id&&a.workshop===workshop))show("wn",id);
+    else{attendance.push({id,workshop,time:new Date().toLocaleString()});store("attendance",attendance);updateCount();show("ok",id)}
+  }else show("no",id);
+}
+$("manualGo").onclick=()=>{const v=$("manual").value.trim();if(v){handle(v);$("manual").value=""}};
+$("manual").onkeydown=e=>{if(e.key==="Enter")$("manualGo").click()};
+
+const bd=("BarcodeDetector" in window)?new BarcodeDetector({formats:["qr_code"]}):null;
+async function tick(){
+  if(!running)return;
+  const v=$("v");
+  if(v.readyState===v.HAVE_ENOUGH_DATA&&v.videoWidth){
+    let text=null;
+    try{
+      if(bd){const r=await bd.detect(v);if(r.length)text=r[0].rawValue}
+      if(!text){const c=$("c"),x=c.getContext("2d",{willReadFrequently:true});c.width=v.videoWidth;c.height=v.videoHeight;x.drawImage(v,0,0);
+        const img=x.getImageData(0,0,c.width,c.height);const code=jsQR(img.data,img.width,img.height,{inversionAttempts:"attemptBoth"});if(code)text=code.data}
+    }catch(e){}
+    $("dbg").textContent=(bd?"Native":"Fallback")+" scanner · camera "+v.videoWidth+"×"+v.videoHeight;
+    if(text){const id=text.trim(),now=Date.now();if(id!==last||now-lastT>3000){last=id;lastT=now;handle(id)}}
+  }
+  setTimeout(()=>requestAnimationFrame(tick),60);
+}
+
+$("export").onclick=()=>{
+  const rows=attendance.filter(a=>a.workshop===workshop).map(a=>({ID:a.id,Workshop:a.workshop,Time:a.time}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Attendance");
+  XLSX.writeFile(wb,"attendance_"+workshop.replace(/\W+/g,"_")+".xlsx");
+};
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script></body></html>
