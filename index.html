@@ -65,13 +65,13 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
 <main id="setup" class="stack">
   <section class="panel">
     <h2>Access sheet</h2>
-    <p class="hint">Excel file with an ID column, then one column per workshop (TRUE or FALSE).</p>
+    <p class="hint">Excel file with an ID column, then one column per workshop or lecture (TRUE or FALSE).</p>
     <label class="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv"><span id="dropText">Choose Excel file</span></label>
     <div class="status" id="loaded"></div>
   </section>
   <section class="panel stack">
-    <div><h2>Workshop</h2><p class="hint" style="margin:0">Only people with access to this workshop will be let in.</p></div>
-    <select id="ws" aria-label="Workshop"></select>
+    <div><h2>Session</h2><p class="hint" style="margin:0">Only people with access to the chosen session will be let in.</p></div>
+    <select id="ws" aria-label="Session"></select>
     <button class="btn" id="start">Start scanning</button>
   </section>
 </main>
@@ -84,7 +84,7 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
   </div>
   <div class="side">
     <section class="panel">
-      <div class="count"><b id="count">0</b><span class="hint" style="margin:0">checked in to this workshop</span></div>
+      <div class="count"><b id="count">0</b><span class="hint" style="margin:0">checked in to this session</span></div>
     </section>
     <section class="panel">
       <h2>Enter an ID by hand</h2>
@@ -95,7 +95,7 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
       <ul class="log" id="log"><li class="hint">Nothing scanned yet. Point the camera at a QR code.</li></ul>
     </section>
     <button class="btn" id="export">Download attendance (.xlsx)</button>
-    <button class="btn ghost" id="stop">Change workshop</button>
+    <button class="btn ghost" id="stop">Change session</button>
     <div class="dbg" id="dbg"></div>
   </div>
 </main>
@@ -115,7 +115,7 @@ function refreshSetup(){
   const keep=load("lastWorkshop","");
   $("ws").innerHTML=ws.map(w=>`<option${w===keep?" selected":""}>${w}</option>`).join("");
   const el=$("loaded");
-  if(access.length){el.textContent=`${access.length} rows loaded · ${ws.length} workshop${ws.length===1?"":"s"}`;el.className="status good";$("dropText").textContent="Replace Excel file"}
+  if(access.length){el.textContent=`${access.length} rows loaded · ${ws.length} session${ws.length===1?"":"s"}`;el.className="status good";$("dropText").textContent="Replace Excel file"}
   else{el.textContent="No sheet loaded yet.";el.className="status"}
   $("start").disabled=!ws.length;
 }
@@ -141,7 +141,7 @@ $("file").onchange=async e=>{
     }
     if(!access.length)throw 0;
     store("access",access);refreshSetup();
-  }catch(err){const el=$("loaded");el.textContent="Could not read this file. The first column must be named ID, followed by one column per workshop.";el.className="status bad"}
+  }catch(err){const el=$("loaded");el.textContent="Could not read this file. The first column must be named ID, followed by one column per workshop or lecture.";el.className="status bad"}
 };
 
 $("start").onclick=async()=>{
