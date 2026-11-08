@@ -53,6 +53,11 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
 .tag{font-weight:700}.tag.ok{color:var(--ok)}.tag.no{color:var(--no)}.tag.wn{color:var(--warn)}
 .manual{display:flex;gap:8px}
 .manual .btn{width:auto;padding:0 18px}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.seg button:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+.pre{display:flex;align-items:center;padding:0 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:700}
 .dbg{color:var(--mut);font-size:.8rem}
 @media(min-width:860px){
  #scan.on{grid-template-columns:1.25fr 1fr;align-items:start}
@@ -86,9 +91,11 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
     <section class="panel">
       <div class="count"><b id="count">0</b><span class="hint" style="margin:0">checked in to this session</span></div>
     </section>
-    <section class="panel">
+    <section class="panel stack">
       <h2>Enter an ID by hand</h2>
-      <div class="manual"><input type="text" id="manual" inputmode="text" placeholder="ID" autocomplete="off"><button class="btn" id="manualGo">Check</button></div>
+      <div class="seg"><button type="button" class="on" id="mStd">Registered ID</button><button type="button" id="mOut">Outsider (AUI)</button></div>
+      <div class="manual"><span class="pre" id="pre" hidden>AUI</span><input type="text" id="manual" inputmode="text" placeholder="ID" autocomplete="off"><button class="btn" id="manualGo">Check</button></div>
+      <div class="hint" id="mHint" style="margin:0" hidden>Outsider number from 1 to 250000</div>
     </section>
     <section class="panel">
       <h2>Recent scans</h2>
@@ -164,23 +171,42 @@ function renderLog(){
 }
 function beep(f,d){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();
   o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
-function show(kind,id){
+function show(kind,id,note){
   const m={ok:["✓","Access granted","var(--ok)","ok","Granted"],no:["✕","Access denied","var(--no)","no","Denied"],wn:["!","Already checked in","var(--warn)","wn","Repeat"]}[kind];
-  const r=$("result");r.style.background=m[2];$("rg").textContent=m[0];$("rt").textContent=m[1];$("ri").textContent=id;
+  const r=$("result");r.style.background=m[2];$("rg").textContent=m[0];$("rt").textContent=m[1];$("ri").textContent=id+(note?" · "+note:"");
   r.classList.remove("show");void r.offsetWidth;r.classList.add("show");
   clearTimeout(hideT);hideT=setTimeout(()=>r.classList.remove("show"),2200);
   recent.unshift({id,c:m[3],label:m[4],time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})});recent=recent.slice(0,8);renderLog();
   if(navigator.vibrate)navigator.vibrate(kind==="no"?[200,100,200]:120);
   kind==="ok"?beep(880,.15):kind==="no"?beep(220,.35):beep(520,.2);
 }
+/* Outsiders: ID = "AUI" + number from 1 to 250000, e.g. AUI172580.
+   If the sheet has a row for that ID, the sheet decides.
+   Otherwise outsiders are let into every session except those whose name starts with one of NO_OUTSIDERS. */
+const NO_OUTSIDERS=/^(kufic|glass painting|eclipse training)/i;
+function outsiderId(id){const m=/^AUI(\d+)$/i.exec(id);if(!m)return null;const n=+m[1];return n>=1&&n<=250000?"AUI"+n:false}
 function handle(id){
+  const o=outsiderId(id);
+  if(o===false){show("no",id,"outsider number must be 1 to 250000");return}
+  if(o)id=o;
   const row=access.find(r=>r.id===id&&r.workshop===workshop);
-  if(row&&row.access){
+  const ok=row?row.access:(!!o&&!NO_OUTSIDERS.test(workshop));
+  if(ok){
     if(attendance.some(a=>a.id===id&&a.workshop===workshop))show("wn",id);
-    else{attendance.push({id,workshop,time:new Date().toLocaleString()});store("attendance",attendance);updateCount();show("ok",id)}
-  }else show("no",id);
+    else{attendance.push({id,workshop,time:new Date().toLocaleString()});store("attendance",attendance);updateCount();show("ok",id,o?"outsider":"")}
+  }else show("no",id,o&&!row?"not open to outsiders":"");
 }
-$("manualGo").onclick=()=>{const v=$("manual").value.trim();if(v){handle(v);$("manual").value=""}};
+let outsider=false;
+function setMode(o){outsider=o;$("mOut").classList.toggle("on",o);$("mStd").classList.toggle("on",!o);
+  $("pre").hidden=!o;$("mHint").hidden=!o;$("mHint").style.color="";$("mHint").textContent="Outsider number from 1 to 250000";
+  $("manual").placeholder=o?"1 – 250000":"ID";$("manual").inputMode=o?"numeric":"text";$("manual").value="";$("manual").focus()}
+$("mStd").onclick=()=>setMode(false);$("mOut").onclick=()=>setMode(true);
+$("manualGo").onclick=()=>{let v=$("manual").value.trim();if(!v)return;
+  if(outsider){
+    if(!/^\d+$/.test(v)||+v<1||+v>250000){const h=$("mHint");h.hidden=false;h.style.color="var(--no)";h.textContent="Enter a whole number from 1 to 250000.";return}
+    v="AUI"+(+v);$("mHint").style.color="";$("mHint").textContent="Outsider number from 1 to 250000";
+  }
+  handle(v);$("manual").value=""};
 $("manual").onkeydown=e=>{if(e.key==="Enter")$("manualGo").click()};
 
 const bd=("BarcodeDetector" in window)?new BarcodeDetector({formats:["qr_code"]}):null;
