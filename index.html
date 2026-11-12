@@ -2,13 +2,12 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f1419">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <title>Workshop Check-in</title>
 <style>
-:root{--bg:#eef0ff;--sky:linear-gradient(160deg,#e9ecff 0%,#e2f6ff 50%,#fde9ff 100%);--panel:#fff;--fg:#12122b;--mut:#5a5f8a;--line:#cfd3f5;--pri:#5b3df5;--pri2:#ff3d9a;--ok:#00a650;--no:#f0264a;--warn:#f06a00;--okt:#008a43;--not:#d4153f;--wnt:#c25400;--r:16px}
-@media(prefers-color-scheme:dark){:root{--bg:#0b0b2b;--sky:linear-gradient(160deg,#0b0b2b 0%,#16124a 50%,#2a0f4a 100%);--panel:#1a1b4d;--fg:#f2f3ff;--mut:#adb2ea;--line:#36397d;--pri:#7a5cff;--pri2:#ff4fa3;--ok:#00b85a;--no:#ff3b5c;--warn:#ff7a1a;--okt:#3ee08a;--not:#ff6b8a;--wnt:#ffb13b}}
+:root{--bg:#000;--sky:#000;--panel:#0d0d0d;--fg:#f2f2f2;--mut:#9aa39c;--line:#26382b;--pri:#00c853;--pri2:#00a844;--ok:#00a650;--no:#e5253f;--warn:#f06a00;--okt:#2ee07a;--not:#ff6b7f;--wnt:#ffb13b;--r:16px;color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{margin:0;background:var(--bg) var(--sky);background-attachment:fixed;color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -22,7 +21,7 @@ h1{font-size:1.25rem;margin:0;letter-spacing:-.01em}
 .hint{color:var(--mut);font-size:.9rem;margin:0 0 12px}
 button,select,input{font:inherit;color:inherit}
 select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
-.btn{width:100%;min-height:54px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer;box-shadow:0 8px 18px -8px var(--pri)}
+.btn{width:100%;min-height:54px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#000;font-weight:700;font-size:1.05rem;cursor:pointer;box-shadow:0 8px 18px -8px rgba(0,200,83,.5)}
 .btn.ghost{box-shadow:none;background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn:focus-visible,select:focus-visible,input:focus-visible,.drop:focus-within{outline:3px solid var(--pri);outline-offset:2px}
@@ -55,7 +54,7 @@ select,input[type=text]{width:100%;min-height:52px;padding:0 14px;border-radius:
 .manual .btn{width:auto;padding:0 18px}
 .seg{display:flex;gap:8px}
 .seg button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;font-weight:600;cursor:pointer}
-.seg button.on{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;border-color:transparent}
+.seg button.on{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#000;border-color:transparent}
 .seg button:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
 .pre{display:flex;align-items:center;padding:0 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-weight:700}
 .pill{border-color:var(--pri);color:var(--pri)}
@@ -63,7 +62,7 @@ h1{background:linear-gradient(135deg,var(--pri),var(--pri2));-webkit-background-
 .count b{background:linear-gradient(135deg,var(--pri),var(--pri2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .panel{box-shadow:0 10px 24px -14px var(--pri)}
 .drop{border-color:var(--pri);color:var(--pri)}
-.frame{border-color:#5ef2ff}
+.frame{border-color:var(--pri)}
 .dbg{color:var(--mut);font-size:.8rem}
 @media(min-width:860px){
  #scan.on{grid-template-columns:1.25fr 1fr;align-items:start}
